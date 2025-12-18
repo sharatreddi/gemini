@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Streaming Chat Test</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+      }
+      #output {
+        white-space: pre-wrap;
+        border: 1px solid #ccc;
+        padding: 12px;
+        min-height: 120px;
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>Gemini Streaming Demo</h2>
+    <button id="ask">Ask AI</button>
+
+    <div id="output"></div>
+
+    <script>
+      const btn = document.getElementById("ask");
+      const out = document.getElementById("output");
+
+      btn.onclick = async () => {
+        out.textContent = "";
+
+        const message = "Explain Star Wars like I am five";
+        const evtSource = new EventSource(
+          `/api/chat/stream?message=${encodeURIComponent(message)}`
+        );
+
+        let full = "";
+
+        evtSource.onmessage = (e) => {
+          const data = JSON.parse(e.data);
+          full += data.delta;
+          out.textContent = full;
+        };
+
+        evtSource.addEventListener("done", () => {
+          evtSource.close();
+        });
+
+        evtSource.onerror = (err) => {
+          console.error("SSE error", err);
+          evtSource.close();
+        };
+      };
+    </script>
+  </body>
+</html>
