@@ -3,7 +3,7 @@ import cors from "cors";
 import "dotenv/config";
 import path from "path";
 
-import chatRouter from "./routes/chat";
+import chatRouter from "./routes/chat"; 
 import streamRouter from "./routes/stream";
 
 const app = express();
@@ -21,8 +21,9 @@ app.use(express.static(frontendPath));
 /**
  * 2️⃣ API routes
  */
+// Specific first!
+app.use("/api/chat/stream", streamRouter); 
 app.use("/api/chat", chatRouter);
-app.use("/api/chat/stream", streamRouter);
 
 /**
  * 3️⃣ Fallback: always return index.html
