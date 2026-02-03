@@ -1,110 +1,213 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Gemini Streaming Chat</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        padding: 20px;
-        max-width: 700px;
-        margin: auto;
-      }
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemini Streaming Chat</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel: #12182b;
+      --accent: #7c8cff;
+      --user: #2b6cff;
+      --assistant: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+    }
 
-      #chat {
-        border: 1px solid #ccc;
-        padding: 12px;
-        min-height: 300px;
-        margin-bottom: 12px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-      }
+    * { box-sizing: border-box; }
 
-      .user {
-        font-weight: bold;
-        margin-top: 10px;
-      }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 600px at 20% -10%, #1b2350, transparent), var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-      .ai {
-        margin-left: 10px;
-        margin-bottom: 10px;
-      }
+    .app {
+      width: 100%;
+      max-width: 900px;
+      height: 90vh;
+      background: var(--panel);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 30px 80px rgba(0,0,0,.4);
+      overflow: hidden;
+    }
 
-      input {
-        width: 80%;
-        padding: 8px;
-      }
+    header {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
 
-      button {
-        padding: 8px 12px;
-      }
-    </style>
-  </head>
+    header h1 {
+      font-size: 16px;
+      margin: 0;
+      letter-spacing: .4px;
+    }
 
-  <body>
-    <h2>Gemini Streaming Chat</h2>
+    header span {
+      font-size: 12px;
+      color: var(--muted);
+    }
 
-    <div id="chat"></div>
+    .messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
 
-    <input id="input" placeholder="Type your message..." />
-    <button id="send">Send</button>
+    .bubble {
+      max-width: 75%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      animation: fadeIn .2s ease-out;
+    }
 
-    <script>
-      const chatDiv = document.getElementById("chat");
-      const input = document.getElementById("input");
-      const sendBtn = document.getElementById("send");
+    .user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+    }
 
-      // 1️⃣ Create or reuse sessionId
-      let sessionId = localStorage.getItem("sessionId");
-      if (!sessionId) {
-        sessionId = crypto.randomUUID();
-        localStorage.setItem("sessionId", sessionId);
-      }
+    .assistant {
+      align-self: flex-start;
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,.05);
+    }
 
-      sendBtn.onclick = () => {
-        const message = input.value.trim();
-        if (!message) return;
+    .typing {
+      font-size: 12px;
+      color: var(--muted);
+      padding-left: 6px;
+    }
 
-        input.value = "";
+    footer {
+      border-top: 1px solid rgba(255,255,255,.06);
+      padding: 14px;
+      display: flex;
+      gap: 10px;
+    }
 
-        // Show user message
-        const userDiv = document.createElement("div");
-        userDiv.className = "user";
-        userDiv.textContent = "You: " + message;
-        chatDiv.appendChild(userDiv);
+    input {
+      flex: 1;
+      background: #020617;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--text);
+      outline: none;
+    }
 
-        // AI message container
-        const aiDiv = document.createElement("div");
-        aiDiv.className = "ai";
-        aiDiv.textContent = "AI: ";
-        chatDiv.appendChild(aiDiv);
+    button {
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      padding: 0 18px;
+      font-weight: 600;
+      cursor: pointer;
+    }
 
-        chatDiv.scrollTop = chatDiv.scrollHeight;
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
 
-        // 2️⃣ Start streaming with sessionId
-        const evtSource = new EventSource(
-          `/api/chat/stream?message=${encodeURIComponent(
-            message
-          )}&sessionId=${sessionId}`
-        );
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Streaming Chat</h1>
+      <span>SSE + Memory</span>
+    </header>
 
-        let full = "";
+    <div id="messages" class="messages"></div>
 
-        evtSource.onmessage = (e) => {
-          const data = JSON.parse(e.data);
-          full += data.delta;
-          aiDiv.textContent = "AI: " + full;
-          chatDiv.scrollTop = chatDiv.scrollHeight;
-        };
+    <footer>
+      <input id="input" placeholder="Ask something…" />
+      <button id="send">Send</button>
+    </footer>
+  </div>
 
-        evtSource.addEventListener("done", () => {
-          evtSource.close();
-        });
+  <script>
+    const messagesEl = document.getElementById("messages");
+    const inputEl = document.getElementById("input");
+    const sendBtn = document.getElementById("send");
 
-        evtSource.onerror = () => {
-          evtSource.close();
-        };
+    const sessionId = crypto.randomUUID();
+    let isStreaming = false;
+
+    function addBubble(text, role) {
+      const div = document.createElement("div");
+      div.className = `bubble ${role}`;
+      div.textContent = text;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return div;
+    }
+
+    function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text || isStreaming) return;
+
+      inputEl.value = "";
+      addBubble(text, "user");
+
+      const assistantBubble = addBubble("", "assistant");
+      const typing = document.createElement("div");
+      typing.className = "typing";
+      typing.textContent = "Typing…";
+      messagesEl.appendChild(typing);
+
+      isStreaming = true;
+      sendBtn.disabled = true;
+
+      const es = new EventSource(`/api/chat/stream?message=${encodeURIComponent(text)}&sessionId=${sessionId}`);
+
+      es.onmessage = (e) => {
+        const { delta } = JSON.parse(e.data);
+        assistantBubble.textContent += delta;
+        messagesEl.scrollTop = messagesEl.scrollHeight;
       };
-    </script>
-  </body>
+
+      es.addEventListener("done", () => {
+        es.close();
+        typing.remove();
+        isStreaming = false;
+        sendBtn.disabled = false;
+      });
+
+      es.onerror = () => {
+        es.close();
+        typing.remove();
+        assistantBubble.textContent += "\n[stream error]";
+        isStreaming = false;
+        sendBtn.disabled = false;
+      };
+    }
+
+    sendBtn.onclick = sendMessage;
+    inputEl.addEventListener("keydown", e => {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
+</body>
 </html>
