@@ -19,7 +19,7 @@ function initSse(res: Response) {
 router.get("/", async (req: Request, res: Response) => {
   const message = req.query.message as string;
   const sessionId = req.query.sessionId as string;
-  console.log("💬 STREAM REQ", { message, sessionId });
+  console.log("STREAM REQ", { message, sessionId });
   if (!message || !sessionId) {
     return res.status(400).end();
   }
@@ -27,28 +27,28 @@ router.get("/", async (req: Request, res: Response) => {
   initSse(res);
 
   try {
-    // 1️⃣ Get existing history from your memory.ts (OLD messages only)
+    // Get existing history from your memory.ts (OLD messages)
     const rawHistory = getHistory(sessionId);
 
-    // 2️⃣ Format it for the Chat SDK (mapping "assistant" -> "model")
+    // Format it for the Chat SDK (mapping "assistant" -> "model")
     const formattedHistory = rawHistory.map((m) => ({
       role: m.role === "user" ? "user" : "model",
       parts: [{ text: m.text }],
     }));
 
-    // 3️⃣ Initialize the Chat according to the Docs
+    // Initialize the Chat according to the Docs
     // Use 'gemini-3-flash-preview' as seen in the 2026 docs
     const chat = ai.chats.create({
       model: "gemini-3-flash-preview",
       history: formattedHistory,
     });
 
-    // 4️⃣ Send the NEW message via the chat object
+    // Send the NEW message via the chat object
     const stream = await chat.sendMessageStream({
       message: message,
     });
 
-    // 5️⃣ Save the current USER message to your local memory
+    // Save the current USER message to your local memory
     addMessage(sessionId, "user", message);
 
     let assistantReply = "";
@@ -61,13 +61,13 @@ router.get("/", async (req: Request, res: Response) => {
       res.write(`data: ${JSON.stringify({ delta: text })}\n\n`);
     }
 
-    // 6️⃣ Save the final AI response to your local memory
+    // Save the final AI response to your local memory
     addMessage(sessionId, "assistant", assistantReply);
 
     res.write(`event: done\ndata: {}\n\n`);
     res.end();
   } catch (err) {
-    console.error("❌ STREAM ERROR", err);
+    console.error("STREAM ERROR", err);
     res.end();
   }
 });

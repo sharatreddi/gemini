@@ -15,11 +15,11 @@ export function addMessage(sessionId: string, role: Role, text: string) {
   history.push({ role, text });
   memoryStore.set(sessionId, history);
 
-  console.log("🧠 MEMORY ADD", { sessionId, role, text });
+  console.log("MEMORY ADD", { sessionId, role, text });
 }
 
 export function getHistory(sessionId: string): Message[] {
   const history = memoryStore.get(sessionId) ?? [];
-  console.log("🧠 MEMORY GET", { sessionId, history });
+  console.log("MEMORY GET", { sessionId, history });
   return history;
 }
